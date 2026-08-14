@@ -36,7 +36,7 @@ const ticketSchema = new mongoose.Schema(
 );
 
 // Populate eventId and userId automatically on find
-ticketSchema.pre(/^find/, function (next) {
+ticketSchema.pre(/^find/, function () {
   this.populate({
     path: 'eventId',
     select: 'title date venue ticketPrice status imageUrl',
@@ -44,7 +44,6 @@ ticketSchema.pre(/^find/, function (next) {
     path: 'userId',
     select: 'name email',
   });
-  next();
 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

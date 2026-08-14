@@ -1,14 +1,13 @@
 @echo off
 set "ANDROID_HOME=C:\Users\DELL\AppData\Local\Android\Sdk"
-set "ANDROID_SDK_ROOT=C:\Users\DELL\AppData\Local\Android\Sdk"
 set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
 set "PATH=%ANDROID_HOME%\platform-tools;%ANDROID_HOME%\emulator;%JAVA_HOME%\bin;%PATH%"
 
 echo ====================================================
-echo   Starting Pixel 7 Pro Android Emulator...
+echo  Starting Metro Bundler for Event Booking App...
 echo ====================================================
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:5000 tcp:5000
 
-start "" "%ANDROID_HOME%\emulator\emulator.exe" -avd Pixel_7_Pro_API_24 -no-snapshot-load -gpu swiftshader_indirect -no-audio
-
-echo Emulator is starting... please wait 60-90 seconds for the home screen.
+npx react-native start
 pause

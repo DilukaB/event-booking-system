@@ -10,6 +10,7 @@ import {
   TextInput,
   StatusBar,
   Animated,
+  Alert,
 } from 'react-native';
 import { eventsAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -133,9 +134,26 @@ const EventListScreen = ({ navigation }) => {
             <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]} 👋</Text>
             <Text style={styles.heroSubtitle}>Discover amazing events</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('MyTickets')} style={styles.ticketsButton}>
-            <Text style={styles.ticketsButtonIcon}>🎫</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity onPress={() => navigation.navigate('MyTickets')} style={styles.ticketsButton}>
+              <Text style={styles.ticketsButtonIcon}>🎫</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Sign Out',
+                  'Are you sure you want to sign out?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign Out', style: 'destructive', onPress: logout },
+                  ]
+                );
+              }}
+              style={styles.logoutButton}
+            >
+              <Text style={styles.logoutButtonIcon}>🚪</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -254,6 +272,11 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.md,
     marginTop: 2,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   ticketsButton: {
     backgroundColor: COLORS.primaryGlow,
     borderRadius: RADIUS.full,
@@ -264,7 +287,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
-  ticketsButtonIcon: { fontSize: 22 },
+  ticketsButtonIcon: { fontSize: 20 },
+  logoutButton: {
+    backgroundColor: 'rgba(255, 71, 87, 0.12)',
+    borderRadius: RADIUS.full,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 71, 87, 0.4)',
+  },
+  logoutButtonIcon: { fontSize: 18 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
