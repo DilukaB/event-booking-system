@@ -10,8 +10,10 @@ const eventRoutes = require('./routes/eventRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
-// Connect to database
-connectDB();
+// Connect to database in standalone mode
+if (!process.env.VERCEL) {
+  connectDB();
+}
 
 const app = express();
 
@@ -43,11 +45,23 @@ app.use(async (req, res, next) => {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'disconnected';
+  try {
+    await connectDB();
+    dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'connecting';
+  } catch (e) {
+    dbStatus = `error: ${e.message}`;
+  }
   res.status(200).json({
     success: true,
     message: '🎉 Event Booking API is running',
     environment: process.env.NODE_ENV,
+    mongoConfigured: !!process.env.MONGO_URI,
+    database: dbStatus,
+    timestamp: new Date().toISOString(),
+  });
+});
     timestamp: new Date().toISOString(),
   });
 });
