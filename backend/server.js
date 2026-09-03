@@ -31,27 +31,17 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// ─── Ensure DB Connected Before Handling Requests ───────────────────────────
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Database connection failed', error: err.message });
-  }
-});
-
-// ─── Static Files (Image uploads) ────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
-  let dbStatus = 'disconnected';
-  try {
-    await connectDB();
-    dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'connecting';
-  } catch (e) {
-    dbStatus = `error: ${e.message}`;
+  const mongoose = require('mongoose');
+  let dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  if (dbStatus !== 'connected') {
+    try {
+      await connectDB();
+      dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'connecting';
+    } catch (e) {
+      dbStatus = `error: ${e.message}`;
+    }
   }
   res.status(200).json({
     success: true,
@@ -62,9 +52,20 @@ app.get('/api/health', async (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-    timestamp: new Date().toISOString(),
-  });
+
+// ─── Ensure DB Connected Before Handling Requests ───────────────────────────
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health') return next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Database connection failed', error: err.message });
+  }
 });
+
+// ─── Static Files (Image uploads) ────────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
