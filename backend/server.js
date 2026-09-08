@@ -31,6 +31,41 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
+// ─── Root Route ────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    name: 'Event Booking System API',
+    version: '1.0.0',
+    description: 'SLIIT SE2020 - Full Stack Event Booking REST API',
+    author: 'Diluka Bandara',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health:  'GET  /api/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login:    'POST /api/auth/login',
+        profile:  'GET  /api/auth/me  [Protected]',
+      },
+      events: {
+        list:   'GET    /api/events',
+        get:    'GET    /api/events/:id',
+        create: 'POST   /api/events  [Protected]',
+        update: 'PUT    /api/events/:id  [Protected]',
+        delete: 'DELETE /api/events/:id  [Protected]',
+      },
+      tickets: {
+        book:   'POST   /api/tickets  [Protected]',
+        mine:   'GET    /api/tickets/my-tickets  [Protected]',
+        get:    'GET    /api/tickets/:id  [Protected]',
+        cancel: 'PUT    /api/tickets/:id/cancel  [Protected]',
+        delete: 'DELETE /api/tickets/:id  [Protected]',
+      },
+    },
+  });
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
   const mongoose = require('mongoose');
