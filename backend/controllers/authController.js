@@ -19,7 +19,7 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -27,7 +27,8 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
-    const user = await User.create({ name, email, password, role });
+    // Role is always 'user' on self-registration — admin must be set manually in DB
+    const user = await User.create({ name, email, password, role: 'user' });
     const token = generateToken(user._id);
 
     res.status(201).json({
