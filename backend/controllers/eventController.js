@@ -1,12 +1,19 @@
 const Event = require('../models/Event');
 const { validationResult } = require('express-validator');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
 
-// Helper to build image URL from request
-const getImageUrl = (req, filename) => {
-  if (!filename) return null;
-  return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+// Helper to delete image from Cloudinary by URL
+const deleteCloudinaryImage = async (imageUrl) => {
+  try {
+    if (!imageUrl || !imageUrl.includes('cloudinary')) return;
+    // Extract public_id from URL
+    const parts = imageUrl.split('/');
+    const filename = parts[parts.length - 1].split('.')[0];
+    const folder = parts[parts.length - 2];
+    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+  } catch (err) {
+    console.warn('Failed to delete old Cloudinary image:', err.message);
+  }
 };
 
 // @desc    Create a new event
@@ -17,14 +24,15 @@ const createEvent = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       // Clean up uploaded file if validation fails
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.file) await deleteCloudinaryImage(req.file.path);
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { title, description, date, venue, totalCapacity, ticketPrice, status } = req.body;
     const capacity = parseInt(totalCapacity, 10);
 
-    const imageUrl = req.file ? getImageUrl(req, req.file.filename) : null;
+    // Cloudinary returns the full URL in req.file.path
+    const imageUrl = req.file ? req.file.path : null;
 
     const event = await Event.create({
       title,
@@ -48,7 +56,7 @@ const createEvent = async (req, res, next) => {
     });
   } catch (error) {
     if (req.file) {
-      try { fs.unlinkSync(req.file.path); } catch (_) {}
+      await deleteCloudinaryImage(req.file.path);
     }
     next(error);
   }
@@ -113,19 +121,19 @@ const updateEvent = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.file) await deleteCloudinaryImage(req.file.path);
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const event = await Event.findById(req.params.id);
     if (!event) {
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.file) await deleteCloudinaryImage(req.file.path);
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
 
     // Authorization: only creator or admin can update
     if (event.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.file) await deleteCloudinaryImage(req.file.path);
       return res.status(403).json({ success: false, message: 'Not authorized to update this event' });
     }
 
@@ -137,7 +145,7 @@ const updateEvent = async (req, res, next) => {
       const bookedSeats = event.totalCapacity - event.availableSeats;
       const newAvailable = newCapacity - bookedSeats;
       if (newAvailable < 0) {
-        if (req.file) fs.unlinkSync(req.file.path);
+        if (req.file) await deleteCloudinaryImage(req.file.path);
         return res.status(400).json({
           success: false,
           message: `Cannot reduce capacity below number of booked seats (${bookedSeats})`,
@@ -154,17 +162,11 @@ const updateEvent = async (req, res, next) => {
     if (ticketPrice !== undefined) event.ticketPrice = parseFloat(ticketPrice);
     if (status) event.status = status;
 
-    // Update image if new file uploaded
+    // Update image if new file uploaded (Cloudinary URL comes in req.file.path)
     if (req.file) {
-      // Delete old image if exists
-      if (event.imageUrl) {
-        const oldFilename = path.basename(event.imageUrl);
-        const oldPath = path.join(__dirname, '..', 'uploads', oldFilename);
-        if (fs.existsSync(oldPath)) {
-          try { fs.unlinkSync(oldPath); } catch (_) {}
-        }
-      }
-      event.imageUrl = getImageUrl(req, req.file.filename);
+      // Delete old image from Cloudinary if exists
+      if (event.imageUrl) await deleteCloudinaryImage(event.imageUrl);
+      event.imageUrl = req.file.path;
     }
 
     const updatedEvent = await event.save();
@@ -177,7 +179,7 @@ const updateEvent = async (req, res, next) => {
     });
   } catch (error) {
     if (req.file) {
-      try { fs.unlinkSync(req.file.path); } catch (_) {}
+      await deleteCloudinaryImage(req.file.path);
     }
     next(error);
   }
@@ -197,14 +199,8 @@ const deleteEvent = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this event' });
     }
 
-    // Delete associated image
-    if (event.imageUrl) {
-      const filename = path.basename(event.imageUrl);
-      const filePath = path.join(__dirname, '..', 'uploads', filename);
-      if (fs.existsSync(filePath)) {
-        try { fs.unlinkSync(filePath); } catch (_) {}
-      }
-    }
+    // Delete associated image from Cloudinary
+    if (event.imageUrl) await deleteCloudinaryImage(event.imageUrl);
 
     await event.deleteOne();
 

@@ -108,7 +108,7 @@ const EventDetailScreen = ({ route, navigation }) => {
     );
   };
 
-  const isOwner = user && event && event.createdBy?._id === user._id;
+  const isOwnerOrAdmin = user && event && (event.createdBy?._id === user._id || user.role === 'admin');
   const canBook = event?.status === 'Active' && event?.availableSeats > 0;
 
   if (loading) {
@@ -165,8 +165,8 @@ const EventDetailScreen = ({ route, navigation }) => {
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
 
-          {/* Owner Actions */}
-          {isOwner && (
+          {/* Owner/Admin Actions */}
+          {isOwnerOrAdmin && (
             <View style={styles.ownerActions}>
               <TouchableOpacity
                 onPress={() => navigation.navigate('EditEvent', { eventId: event._id })}

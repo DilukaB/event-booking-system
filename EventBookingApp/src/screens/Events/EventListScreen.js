@@ -230,14 +230,16 @@ const EventListScreen = ({ navigation }) => {
         }
       />
 
-      {/* FAB - Create Event */}
-      <TouchableOpacity
-        onPress={() => navigation.navigate('CreateEvent')}
-        style={[styles.fab, SHADOWS.lg]}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
+      {/* FAB - Create Event (Admin only) */}
+      {user?.role === 'admin' && (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CreateEvent')}
+          style={[styles.fab, SHADOWS.lg]}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.fabIcon}>+</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

@@ -1,14 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ─── Auto-detect environment ──────────────────────────────────────────────────
-// Web browser: use localhost
-// Android Emulator: use 10.0.2.2 (maps to host machine)
-// Physical Device: replace with your machine's local IP
-const isWeb = typeof document !== 'undefined';
-export const BASE_URL = isWeb
-  ? 'http://localhost:5000/api'
-  : 'http://10.0.2.2:5000/api';
+// ─── Production Hosted Backend (Vercel) ───────────────────────────────────────
+export const BASE_URL = 'https://event-booking-system-gules.vercel.app/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
