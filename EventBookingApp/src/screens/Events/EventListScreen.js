@@ -75,7 +75,14 @@ const EventListScreen = ({ navigation }) => {
         {/* Event Image */}
         <View style={styles.imageContainer}>
           {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.eventImage} resizeMode="cover" />
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.eventImage}
+              resizeMode="cover"
+              onLoadStart={() => console.log('🔄 Image loading started:', item.imageUrl)}
+              onLoad={() => console.log('✅ Image loaded successfully:', item.imageUrl)}
+              onError={(e) => console.log('❌ Image error for:', item.imageUrl, e.nativeEvent?.error)}
+            />
           ) : (
             <View style={[styles.eventImage, styles.imagePlaceholder]}>
               <Text style={styles.imagePlaceholderText}>🎪</Text>
