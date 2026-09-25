@@ -25,11 +25,31 @@ const createEventValidation = [
     .withMessage('Ticket price must be a non-negative number'),
 ];
 
+// Validation rules for update
+const updateEventValidation = [
+  body('title').optional().trim().notEmpty().withMessage('Event title cannot be empty'),
+  body('description').optional().trim().notEmpty().withMessage('Description cannot be empty'),
+  body('date').optional().isISO8601().withMessage('Valid ISO8601 date is required'),
+  body('venue').optional().trim().notEmpty().withMessage('Venue cannot be empty'),
+  body('totalCapacity')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Total capacity must be a positive integer'),
+  body('ticketPrice')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Ticket price must be a non-negative number'),
+  body('status')
+    .optional()
+    .isIn(['Active', 'Sold Out', 'Cancelled', 'Completed'])
+    .withMessage('Invalid status. Must be Active, Sold Out, Cancelled, or Completed'),
+];
+
 // Routes
 router.get('/', getEvents);                                   // Public
 router.get('/:id', getEventById);                             // Public
 router.post('/', protect, upload.single('image'), createEventValidation, createEvent);
-router.put('/:id', protect, upload.single('image'), updateEvent);
+router.put('/:id', protect, upload.single('image'), updateEventValidation, updateEvent);
 router.delete('/:id', protect, deleteEvent);
 
 module.exports = router;
