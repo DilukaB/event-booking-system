@@ -17,6 +17,7 @@ import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../theme';
 const MyTicketsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [tickets, setTickets] = useState([]);
+  const [allTickets, setAllTickets] = useState([]); // unfiltered — used for stats
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
@@ -26,8 +27,13 @@ const MyTicketsScreen = ({ navigation }) => {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
-      const response = await ticketsAPI.getMyTickets(params);
-      setTickets(response.data.tickets);
+      // Fetch filtered tickets for list, and all tickets for stats
+      const [filteredRes, allRes] = await Promise.all([
+        ticketsAPI.getMyTickets(params),
+        ticketsAPI.getMyTickets({}),
+      ]);
+      setTickets(filteredRes.data.tickets);
+      setAllTickets(allRes.data.tickets);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load tickets');
@@ -188,19 +194,19 @@ const MyTicketsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Stats */}
+      {/* Stats — always based on ALL tickets, not the current filter */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{tickets.filter(t => t.status === 'Confirmed').length}</Text>
+          <Text style={styles.statNumber}>{allTickets.filter(t => t.status === 'Confirmed').length}</Text>
           <Text style={styles.statLabel}>Active</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{tickets.length}</Text>
+          <Text style={styles.statNumber}>{allTickets.length}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>
-            ${tickets.filter(t => t.status === 'Confirmed').reduce((s, t) => s + (t.totalAmount || 0), 0).toFixed(0)}
+            ${allTickets.filter(t => t.status === 'Confirmed').reduce((s, t) => s + (t.totalAmount || 0), 0).toFixed(0)}
           </Text>
           <Text style={styles.statLabel}>Spent</Text>
         </View>

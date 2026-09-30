@@ -41,8 +41,8 @@ const updateEventValidation = [
     .withMessage('Ticket price must be a non-negative number'),
   body('status')
     .optional()
-    .isIn(['Active', 'Sold Out', 'Cancelled', 'Completed'])
-    .withMessage('Invalid status. Must be Active, Sold Out, Cancelled, or Completed'),
+    .isIn(['Active', 'Sold Out', 'Cancelled'])
+    .withMessage('Invalid status. Must be one of: Active, Sold Out, Cancelled'),
 ];
 
 // Routes

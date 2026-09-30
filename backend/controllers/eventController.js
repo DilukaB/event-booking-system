@@ -1,18 +1,55 @@
 const Event = require('../models/Event');
 const { validationResult } = require('express-validator');
-const cloudinary = require('cloudinary').v2;
+const path = require('path');
+const fs = require('fs');
 
-// Helper to delete image from Cloudinary by URL
+// ─── Helper: Determine image URL ─────────────────────────────────────────────
+// Cloudinary gives req.file.path = full https URL
+// Disk gives req.file.path = local absolute path → we store the /uploads relative URL
+const getImageUrl = (file) => {
+  if (!file) return null;
+  // Cloudinary: path is already an https URL
+  if (file.path && file.path.startsWith('http')) {
+    return file.path;
+  }
+  // Disk storage: build a relative URL the static server can serve
+  const filename = path.basename(file.path);
+  return `/uploads/${filename}`;
+};
+
+// ─── Helper: Delete image if stored locally ──────────────────────────────────
+const deleteLocalImage = (imageUrl) => {
+  try {
+    if (!imageUrl || imageUrl.startsWith('http')) return; // Cloudinary or null
+    const filename = imageUrl.replace('/uploads/', '');
+    const fullPath = path.join(__dirname, '..', 'uploads', filename);
+    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+  } catch (err) {
+    console.warn('Failed to delete local image:', err.message);
+  }
+};
+
+// ─── Helper: Delete image from Cloudinary ───────────────────────────────────
 const deleteCloudinaryImage = async (imageUrl) => {
   try {
     if (!imageUrl || !imageUrl.includes('cloudinary')) return;
-    // Extract public_id from URL
+    const cloudinary = require('cloudinary').v2;
     const parts = imageUrl.split('/');
     const filename = parts[parts.length - 1].split('.')[0];
     const folder = parts[parts.length - 2];
     await cloudinary.uploader.destroy(`${folder}/${filename}`);
   } catch (err) {
     console.warn('Failed to delete old Cloudinary image:', err.message);
+  }
+};
+
+// ─── Helper: Delete image (any storage) ─────────────────────────────────────
+const deleteImage = async (imageUrl) => {
+  if (!imageUrl) return;
+  if (imageUrl.includes('cloudinary')) {
+    await deleteCloudinaryImage(imageUrl);
+  } else {
+    deleteLocalImage(imageUrl);
   }
 };
 
@@ -23,16 +60,13 @@ const createEvent = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Clean up uploaded file if validation fails
-      if (req.file) await deleteCloudinaryImage(req.file.path);
+      if (req.file) await deleteImage(getImageUrl(req.file));
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { title, description, date, venue, totalCapacity, ticketPrice, status } = req.body;
     const capacity = parseInt(totalCapacity, 10);
-
-    // Cloudinary returns the full URL in req.file.path
-    const imageUrl = req.file ? req.file.path : null;
+    const imageUrl = getImageUrl(req.file);
 
     const event = await Event.create({
       title,
@@ -55,9 +89,7 @@ const createEvent = async (req, res, next) => {
       event,
     });
   } catch (error) {
-    if (req.file) {
-      await deleteCloudinaryImage(req.file.path);
-    }
+    if (req.file) await deleteImage(getImageUrl(req.file));
     next(error);
   }
 };
@@ -121,19 +153,19 @@ const updateEvent = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      if (req.file) await deleteCloudinaryImage(req.file.path);
+      if (req.file) await deleteImage(getImageUrl(req.file));
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const event = await Event.findById(req.params.id);
     if (!event) {
-      if (req.file) await deleteCloudinaryImage(req.file.path);
+      if (req.file) await deleteImage(getImageUrl(req.file));
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
 
     // Authorization: only creator or admin can update
     if (event.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      if (req.file) await deleteCloudinaryImage(req.file.path);
+      if (req.file) await deleteImage(getImageUrl(req.file));
       return res.status(403).json({ success: false, message: 'Not authorized to update this event' });
     }
 
@@ -145,7 +177,7 @@ const updateEvent = async (req, res, next) => {
       const bookedSeats = event.totalCapacity - event.availableSeats;
       const newAvailable = newCapacity - bookedSeats;
       if (newAvailable < 0) {
-        if (req.file) await deleteCloudinaryImage(req.file.path);
+        if (req.file) await deleteImage(getImageUrl(req.file));
         return res.status(400).json({
           success: false,
           message: `Cannot reduce capacity below number of booked seats (${bookedSeats})`,
@@ -162,11 +194,11 @@ const updateEvent = async (req, res, next) => {
     if (ticketPrice !== undefined) event.ticketPrice = parseFloat(ticketPrice);
     if (status) event.status = status;
 
-    // Update image if new file uploaded (Cloudinary URL comes in req.file.path)
+    // Update image if new file uploaded
     if (req.file) {
-      // Delete old image from Cloudinary if exists
-      if (event.imageUrl) await deleteCloudinaryImage(event.imageUrl);
-      event.imageUrl = req.file.path;
+      // Delete old image (Cloudinary or local)
+      if (event.imageUrl) await deleteImage(event.imageUrl);
+      event.imageUrl = getImageUrl(req.file);
     }
 
     const updatedEvent = await event.save();
@@ -178,9 +210,7 @@ const updateEvent = async (req, res, next) => {
       event: updatedEvent,
     });
   } catch (error) {
-    if (req.file) {
-      await deleteCloudinaryImage(req.file.path);
-    }
+    if (req.file) await deleteImage(getImageUrl(req.file));
     next(error);
   }
 };
@@ -199,8 +229,8 @@ const deleteEvent = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this event' });
     }
 
-    // Delete associated image from Cloudinary
-    if (event.imageUrl) await deleteCloudinaryImage(event.imageUrl);
+    // Delete associated image (Cloudinary or local)
+    if (event.imageUrl) await deleteImage(event.imageUrl);
 
     await event.deleteOne();
 
