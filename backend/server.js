@@ -31,14 +31,15 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// ─── Root Route ────────────────────────────────────────────────────────────────
-app.get('/', (req, res) => {
+// ─── Root & /api Index Routes ─────────────────────────────────────────────────
+const apiIndex = (req, res) => {
   res.status(200).json({
     success: true,
     name: 'Event Booking System API',
     version: '1.0.0',
     description: 'SLIIT SE2020 - Full Stack Event Booking REST API',
     author: 'Diluka Bandara',
+    github: 'https://github.com/DilukaB/event-booking-system',
     environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -56,15 +57,17 @@ app.get('/', (req, res) => {
         delete: 'DELETE /api/events/:id  [Protected]',
       },
       tickets: {
-        book:   'POST   /api/tickets  [Protected]',
+        book:   'POST   /api/tickets/book  [Protected]',
         mine:   'GET    /api/tickets/my-tickets  [Protected]',
         get:    'GET    /api/tickets/:id  [Protected]',
-        cancel: 'PUT    /api/tickets/:id/cancel  [Protected]',
-        delete: 'DELETE /api/tickets/:id  [Protected]',
+        cancel: 'PATCH  /api/tickets/:id/cancel  [Protected]',
       },
     },
   });
-});
+};
+
+app.get('/', apiIndex);
+app.get('/api', apiIndex);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
