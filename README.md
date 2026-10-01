@@ -90,9 +90,7 @@ Import `backend/Event_Booking_API.postman_collection.json` into Postman or Thund
 
 ---
 
-## 🎓 Academic Report & Viva Defense Guide
-For full viva preparation (60 marks), architecture diagrams, ERD, and deployment guides, refer to:
-👉 [`SLIIT_SE2020_PROJECT_REPORT_AND_VIVA_GUIDE.md`](./SLIIT_SE2020_PROJECT_REPORT_AND_VIVA_GUIDE.md)
+ 
 
 ---
 
